@@ -5,10 +5,6 @@ fn bin_to_dec(bin: String) -> u8 {
         let bitint = bit.to_digit(10).unwrap() as u8;
         let pow = 2_u8.pow(pos.into());
         res += bitint * pow;
-        // println!(
-        //     "bitsup : {} pow : {} res : {} pos : {}",
-        //     bitsup, pow, res, pos
-        // );
         pos += 1;
     }
     return res;
@@ -16,11 +12,10 @@ fn bin_to_dec(bin: String) -> u8 {
 
 fn encode(input: String) -> String {
     let mut bitstr = String::new();
-    let mut res = 0;
     //convert all chars in input to binary
     for byte in input.bytes() {
         for bit in (0..8).rev() {
-            res = (byte >> bit) & 1;
+            let res = (byte >> bit) & 1;
             bitstr = format!("{}{}", bitstr, res.to_string());
             // println!("{}", res);
         }
@@ -76,30 +71,87 @@ fn encode(input: String) -> String {
 }
 
 fn decode(input: String) -> String {
-    return String::new();
+    let stripped = input.replace("=", "");
+    // println!("{}", stripped);
+
+    let mut bitstr = String::new();
+    for byte in stripped.bytes() {
+        let mut integer = 0;
+        if byte >= 65 && byte <= 90 {
+            integer = byte - 65;
+        } else if byte >= 97 && byte <= 122 {
+            integer = byte - 71;
+        } else if byte >= 48 && byte <= 57 {
+            integer = byte + 4;
+        } else if byte == 43 {
+            integer = 62
+        } else if byte == 47 {
+            integer = 63
+        }
+
+        //convert back to 6 bit binary repr
+        for bit in (0..6).rev() {
+            let res = (integer >> bit) & 1;
+            bitstr = format!("{}{}", bitstr, res.to_string());
+            // println!("{}", res);
+        }
+        // println!("{}", bitstr);
+    }
+
+    let mut newbytes = Vec::new();
+    let mut temp = String::new();
+    let mut count = 1;
+    for bit in bitstr.chars() {
+        temp = format!("{}{}", temp, bit);
+        if count % 8 == 0 {
+            newbytes.push(temp);
+            temp = String::new();
+        }
+        count += 1;
+    }
+    // println!("{:?}", newbytes);
+
+    let mut output = String::new();
+    for byte in newbytes {
+        let nbyte = bin_to_dec(byte);
+        if nbyte != 0 {
+            output = format!("{}{}", output, nbyte as char);
+        }
+    }
+    return output;
+}
+
+fn ask_input() -> String {
+    println!("Input : ");
+    let mut input = String::new();
+    let _ = std::io::stdin().read_line(&mut input);
+    if input.len() == 0 {
+        println!("No input given!");
+    }
+    return input;
 }
 
 fn main() {
     let flag = match std::env::args().nth(1) {
         Some(s) => s,
         None => {
-            eprintln!("No flag given");
+            println!("No flag given");
             return;
         }
     };
     let mut output = String::new();
     if flag == "-e" {
-        println!("Input : ");
-        let mut input = String::new();
-        let _ = std::io::stdin().read_line(&mut input);
+        let input = ask_input();
         if input.len() == 0 {
-            println!("No input given!");
             return;
         }
         output = encode(input);
     } else if flag == "-d" {
-        println!("TODO : Decoding");
-        return;
+        let input = ask_input();
+        if input.len() == 0 {
+            return;
+        }
+        output = decode(input);
     } else {
         println!("Unknown flag!");
         return;
